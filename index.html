@@ -160,18 +160,34 @@
   let busy = false;
   const API_BASE = '/api';
 
-  async function callBackend(path, payload) {
-    const response = await fetch(API_BASE + path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    let data;
-    try { data = await response.json(); }
-    catch (_) { throw new Error('Backend tidak mengembalikan JSON. Periksa deployment Cloudflare.'); }
-    if (!response.ok) throw new Error(data.error || ('Permintaan gagal (' + response.status + ').'));
-    return data;
+async function callBackend(path, payload) {
+  const response = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch (_) {
+    const preview = raw.slice(0, 200).replace(/\s+/g, ' ');
+    throw new Error(
+      'Respons backend bukan JSON (HTTP ' +
+      response.status + '). Isi respons: ' + preview
+    );
   }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || ('Permintaan gagal (' + response.status + ').')
+    );
+  }
+
+  return data;
+}
 
   function getBaseInput() {
     let source = document.getElementById('source').value.trim();
