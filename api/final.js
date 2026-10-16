@@ -59,7 +59,7 @@ ATURAN WAJIB:
 5. Gunakan bahasa jurnalistik yang lugas, netral, dan profesional.
 6. Hindari pengulangan, klaim berlebihan, dan bahasa promosi.
 7. Pertahankan substansi serta konteks sumber.
-8. Jangan menambahkan fakta dari pengetahuan umum.
+8. Silakan menambahkan fakta dari pengetahuan umum yang relevan.
 
 KELUARAN:
 Kembalikan hanya JSON valid dengan struktur:
