@@ -158,6 +158,20 @@
   let selectedTitle = null;
   let finalData = null;
   let busy = false;
+  const API_BASE = 'https://ai-news-generator-api.bawaslukabupatengorontalo.workers.dev';
+
+  async function callBackend(path, payload) {
+    const response = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    let data;
+    try { data = await response.json(); }
+    catch (_) { throw new Error('Backend tidak mengembalikan JSON. Periksa deployment Cloudflare.'); }
+    if (!response.ok) throw new Error(data.error || ('Permintaan gagal (' + response.status + ').'));
+    return data;
+  }
 
   function getBaseInput() {
     let source = document.getElementById('source').value.trim();
@@ -206,8 +220,8 @@
     if (planData && !confirm('Generate ulang akan menggunakan satu permintaan AI lagi. Lanjutkan?')) return;
 
     setBusy(true, 'AI sedang mengolah bahan, angle, dan judul dalam satu permintaan. Mohon tunggu.');
-    google.script.run
-      .withSuccessHandler(data => {
+    callBackend('/plan', input)
+      .then(data => {
         setBusy(false);
         planData = data;
         selectedAngle = null;
@@ -219,11 +233,10 @@
         showStatus('Selesai. Ringkasan, 5 angle, dan 5 judul sudah dibuat. Memilih opsi tidak memakai kuota AI.');
         document.getElementById('planPanel').scrollIntoView({behavior:'smooth', block:'start'});
       })
-      .withFailureHandler(err => {
+      .catch(err => {
         setBusy(false);
         showStatus('Terjadi kesalahan: ' + (err.message || err), true);
-      })
-      .generatePlan(input);
+      });
   }
 
   function renderPlan(data) {
@@ -337,8 +350,8 @@
       selectedTitle: selectedTitle.title
     });
 
-    google.script.run
-      .withSuccessHandler(data => {
+    callBackend('/final', input)
+      .then(data => {
         setBusy(false);
         finalData = data;
         document.getElementById('finalTitle').value = plainText(data.title || selectedTitle.title);
@@ -348,11 +361,10 @@
         showStatus('Berita final selesai dibuat. Silakan periksa dan sunting sebelum publikasi.');
         document.getElementById('finalPanel').scrollIntoView({behavior:'smooth', block:'start'});
       })
-      .withFailureHandler(err => {
+      .catch(err => {
         setBusy(false);
         showStatus('Terjadi kesalahan: ' + (err.message || err), true);
-      })
-      .generateFinal(input);
+      });
   }
 
   function renderVerification(notes) {
