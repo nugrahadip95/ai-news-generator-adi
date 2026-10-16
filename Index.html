@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI News Generator</title>
+  <style>
+    :root { --navy:#17365d; --blue:#2459a9; --bg:#f4f6fa; --line:#e1e6ef; --muted:#64748b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:#1e293b; font-family:Arial,Helvetica,sans-serif; line-height:1.6; }
+    header { background:var(--navy); color:white; padding:22px 5%; }
+    header h1 { margin:0 0 4px; font-size:24px; }
+    header p { margin:0; color:#dbeafe; font-size:14px; }
+    main { max-width:1050px; margin:24px auto; padding:0 16px 36px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:14px; padding:21px; margin-bottom:18px; box-shadow:0 3px 12px #152d4a08; }
+    h2 { font-size:19px; margin:0 0 6px; } h3 { font-size:16px; margin:0 0 8px; }
+    .muted { color:var(--muted); font-size:13px; margin-top:4px; }
+    label { display:block; margin:14px 0 6px; font-size:13px; font-weight:bold; }
+    textarea,input,select { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:11px 12px; font:inherit; font-size:14px; color:#1e293b; background:#fff; }
+    textarea { resize:vertical; min-height:110px; }
+    #source { min-height:220px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .buttons { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+    button { border:0; border-radius:8px; padding:10px 15px; cursor:pointer; font-weight:bold; font-size:13px; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .primary { background:var(--blue); color:#fff; } .secondary { background:#e9eef6; color:var(--navy); } .outline { background:white; border:1px solid var(--line); color:var(--navy); }
+    #status { display:none; margin-bottom:16px; padding:12px; border-radius:8px; font-size:13px; overflow-wrap:anywhere; }
+    .cards { display:grid; gap:10px; }
+    .result-card { border:1px solid var(--line); border-radius:10px; padding:14px; background:#fff; }
+    .result-card.selected { border:2px solid var(--blue); background:#f5f8ff; }
+    .tag { display:inline-block; color:var(--blue); background:#eef4ff; border-radius:20px; padding:3px 8px; font-size:11px; margin-bottom:7px; }
+    .result-card p { white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; margin:7px 0; }
+    #planPanel,#finalPanel { display:none; }
+    #finalEditor { min-height:360px; white-space:pre-wrap; }
+    .pick-row { display:flex; gap:10px; align-items:flex-start; }
+    .pick-row input { width:auto; margin-top:5px; }
+    footer { text-align:center; color:var(--muted); font-size:12px; padding:18px; }
+    @media(max-width:620px) { .grid { grid-template-columns:1fr; } .panel { padding:16px; } header h1 { font-size:21px; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>AI News Generator</h1>
+  <p>Bawaslu Kabupaten Gorontalo · Asisten Penulisan Berita</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>1. Bahan Mentah Berita</h2>
+    <p class="muted">Masukkan seluruh catatan, transkrip, kutipan, nama dan jabatan, tanggal, lokasi, data, serta informasi pendukung dalam satu kolom. Tidak perlu dipilah atau dirapikan terlebih dahulu.</p>
+    <label for="source">Bahan mentah berita *</label>
+    <textarea id="source" placeholder="Tempel semua bahan mentah di sini. AI akan memilah fakta, mengidentifikasi angle, dan menyusun alternatif judul."></textarea>
+    <div class="grid">
+      <div><label for="date">Tanggal (opsional)</label><input id="date" placeholder="Contoh: 15 Oktober 2026"></div>
+      <div><label for="location">Lokasi (opsional)</label><input id="location" placeholder="Desa, kecamatan, kabupaten"></div>
+    </div>
+    <label for="type">Jenis berita</label>
+    <select id="type">
+      <option>Kegiatan Bawaslu</option>
+      <option>Pernyataan atau imbauan</option>
+      <option>Pendidikan dan pengawasan partisipatif</option>
+      <option>Pengawasan atau penanganan pelanggaran</option>
+      <option>Informasi atau pengumuman resmi</option>
+      <option>Berita dari sumber eksternal</option>
+    </select>
+    <div class="grid">
+      <div>
+        <label for="subject">Subjek berita</label>
+        <select id="subject">
+          <option value="OTOMATIS">Otomatis oleh AI</option>
+          <option value="NARASUMBER">Narasumber</option>
+          <option value="LEMBAGA">Lembaga</option>
+          <option value="ISU">Isu</option>
+        </select>
+      </div>
+      <div>
+        <label for="titleStyle">Pola judul</label>
+        <select id="titleStyle">
+          <option value="OTOMATIS">Otomatis sesuai berita</option>
+          <option value="PERNYATAAN">Tokoh + tindakan/pernyataan</option>
+          <option value="LEMBAGA">Lembaga + tindakan</option>
+          <option value="EDUKASI">Pesan edukatif</option>
+          <option value="DAMPAK">Isu atau dampak publik</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid">
+      <div>
+        <label for="leadStyle">Pola lead</label>
+        <select id="leadStyle">
+          <option value="OTOMATIS">Otomatis</option>
+          <option value="TOKOH">Narasumber sebagai subjek</option>
+          <option value="LEMBAGA">Lembaga sebagai subjek</option>
+          <option value="ISU">Isu sebagai subjek</option>
+        </select>
+      </div>
+      <div>
+        <label for="length">Panjang berita</label>
+        <select id="length">
+          <option value="ringkas">Ringkas, 3–5 paragraf</option>
+          <option value="standar" selected>Standar, 5–8 paragraf</option>
+          <option value="mendalam">Mendalam, sesuai bahan</option>
+        </select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="primary" id="planBtn" onclick="generatePlan()">Generate Bahan, Angle &amp; Judul</button>
+    </div>
+    <p class="muted">Generate pertama memakai satu permintaan AI untuk menyiapkan ringkasan, fakta, catatan verifikasi, 5 angle, dan 5 judul.</p>
+  </section>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <section class="panel" id="planPanel">
+    <h2>2. Hasil Olahan AI</h2>
+    <div id="summaryBlock"></div>
+    <div id="factsBlock"></div>
+    <div id="quotesBlock"></div>
+    <div id="missingBlock"></div>
+    <div class="grid">
+      <div>
+        <h3>3. Pilih Angle Berita</h3>
+        <p class="muted">Memilih angle tidak menggunakan kuota AI.</p>
+        <div id="angles" class="cards"></div>
+      </div>
+      <div>
+        <h3>4. Pilih Judul Berita</h3>
+        <p class="muted">Judul dibuat AI pada permintaan pertama. Pilih yang paling cocok.</p>
+        <div id="titles" class="cards"></div>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="primary" id="finalBtn" onclick="generateFinal()">Generate Berita Final</button>
+      <button class="outline" onclick="copyPlanSummary()">Salin Ringkasan Bahan</button>
+    </div>
+    <p class="muted">Generate kedua baru dijalankan setelah angle dan judul dipilih.</p>
+  </section>
+
+  <section class="panel" id="finalPanel">
+    <h2>5. Berita Final</h2>
+    <p class="muted">Periksa fakta dan kutipan sebelum dipublikasikan. Anda dapat menyunting teks di bawah ini.</p>
+    <label for="finalTitle">Judul</label>
+    <input id="finalTitle">
+    <label for="finalEditor">Isi berita</label>
+    <textarea id="finalEditor"></textarea>
+    <div id="verificationBlock"></div>
+    <div class="buttons">
+      <button class="primary" onclick="copyFinal()">Salin Berita Lengkap</button>
+      <button class="outline" onclick="copyBody()">Salin Isi Berita</button>
+    </div>
+  </section>
+</main>
+<footer>AI membantu penyusunan naskah. Verifikasi fakta dan persetujuan editor tetap diperlukan sebelum publikasi.</footer>
+
+<script>
+  let planData = null;
+  let selectedAngle = null;
+  let selectedTitle = null;
+  let finalData = null;
+  let busy = false;
+
+  function getBaseInput() {
+    let source = document.getElementById('source').value.trim();
+    if (!source) return null;
+    const meta = [];
+    const date = document.getElementById('date').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const type = document.getElementById('type').value;
+    if (date) meta.push('Tanggal kegiatan: ' + date);
+    if (location) meta.push('Lokasi kegiatan: ' + location);
+    if (type) meta.push('Jenis berita: ' + type);
+    if (meta.length) source += '\n\nINFORMASI FORMULIR:\n' + meta.join('\n');
+    return {
+      source,
+      type,
+      subject: document.getElementById('subject').value,
+      titleStyle: document.getElementById('titleStyle').value,
+      leadStyle: document.getElementById('leadStyle').value,
+      length: document.getElementById('length').value
+    };
+  }
+
+  function setBusy(value, message) {
+    busy = value;
+    document.getElementById('planBtn').disabled = value;
+    document.getElementById('finalBtn').disabled = value;
+    if (message) showStatus(message, false);
+  }
+
+  function showStatus(message, isError) {
+    const el = document.getElementById('status');
+    el.style.display = 'block';
+    el.style.background = isError ? '#fff0f0' : '#eef4ff';
+    el.style.color = isError ? '#a11' : '#17365d';
+    el.textContent = message;
+  }
+
+  function generatePlan() {
+    if (busy) return;
+    const input = getBaseInput();
+    if (!input) {
+      showStatus('Silakan isi bahan mentah berita terlebih dahulu.', true);
+      document.getElementById('source').focus();
+      return;
+    }
+    if (planData && !confirm('Generate ulang akan menggunakan satu permintaan AI lagi. Lanjutkan?')) return;
+
+    setBusy(true, 'AI sedang mengolah bahan, angle, dan judul dalam satu permintaan. Mohon tunggu.');
+    google.script.run
+      .withSuccessHandler(data => {
+        setBusy(false);
+        planData = data;
+        selectedAngle = null;
+        selectedTitle = null;
+        finalData = null;
+        document.getElementById('finalPanel').style.display = 'none';
+        renderPlan(data);
+        document.getElementById('planPanel').style.display = 'block';
+        showStatus('Selesai. Ringkasan, 5 angle, dan 5 judul sudah dibuat. Memilih opsi tidak memakai kuota AI.');
+        document.getElementById('planPanel').scrollIntoView({behavior:'smooth', block:'start'});
+      })
+      .withFailureHandler(err => {
+        setBusy(false);
+        showStatus('Terjadi kesalahan: ' + (err.message || err), true);
+      })
+      .generatePlan(input);
+  }
+
+  function renderPlan(data) {
+    renderTextBlock('summaryBlock', 'Ringkasan bahan', plainText(data.summary || 'Ringkasan belum tersedia.'));
+    renderTextBlock('factsBlock', 'Fakta yang teridentifikasi', formatList(data.facts));
+    renderTextBlock('quotesBlock', 'Kutipan yang ditemukan di sumber', formatList(data.quotes));
+    renderTextBlock('missingBlock', 'Informasi yang perlu diverifikasi', formatList(data.missing));
+    renderChoices('angles', Array.isArray(data.angles) ? data.angles : [], 'angle');
+    renderChoices('titles', Array.isArray(data.titles) ? data.titles : [], 'title');
+  }
+
+  function renderTextBlock(id, heading, text) {
+    const root = document.getElementById(id);
+    root.replaceChildren();
+    const h = document.createElement('h3');
+    h.textContent = heading;
+    const p = document.createElement('p');
+    p.className = 'muted';
+    p.style.whiteSpace = 'pre-wrap';
+    p.textContent = text || 'Tidak ada informasi.';
+    root.append(h, p);
+  }
+
+  function renderChoices(id, items, kind) {
+    const root = document.getElementById(id);
+    root.replaceChildren();
+    if (!items.length) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'Tidak ada opsi yang diterima.';
+      root.appendChild(p);
+      return;
+    }
+    items.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.id = kind + '-' + index;
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = (kind === 'angle' ? 'ANGLE ' : 'JUDUL ') + (index + 1);
+      const title = document.createElement('h3');
+      title.textContent = plainText(item.title || 'Opsi ' + (index + 1));
+      card.append(tag, title);
+
+      const details = kind === 'angle'
+        ? [['Fokus',item.focus],['Alasan',item.reason],['Fakta pendukung',item.evidence],['Arah tulisan',item.direction]]
+        : [['Alasan',item.reason],['Cocok untuk angle',angleName(item.angleId)]];
+      details.forEach(([label,value]) => {
+        if (!value) return;
+        const p = document.createElement('p');
+        p.textContent = label + ': ' + plainText(value);
+        card.appendChild(p);
+      });
+
+      const btn = document.createElement('button');
+      btn.className = 'secondary';
+      btn.textContent = 'Pilih ' + (kind === 'angle' ? 'Angle' : 'Judul');
+      btn.onclick = () => chooseItem(kind, item, index);
+      card.appendChild(btn);
+      root.appendChild(card);
+    });
+  }
+
+  function angleName(id) {
+    const angles = planData && planData.angles ? planData.angles : [];
+    const found = angles.find(x => String(x.id) === String(id));
+    return found ? found.title : 'Angle pilihan pengguna';
+  }
+
+  function chooseItem(kind, item, index) {
+    if (kind === 'angle') {
+      selectedAngle = item;
+      document.querySelectorAll('#angles .result-card').forEach(el => el.classList.remove('selected'));
+      const card = document.getElementById('angle-' + index);
+      if (card) card.classList.add('selected');
+      showStatus('Angle dipilih: ' + plainText(item.title) + '.');
+    } else {
+      selectedTitle = item;
+      document.querySelectorAll('#titles .result-card').forEach(el => el.classList.remove('selected'));
+      const card = document.getElementById('title-' + index);
+      if (card) card.classList.add('selected');
+      showStatus('Judul dipilih: ' + plainText(item.title) + '.');
+    }
+  }
+
+  function generateFinal() {
+    if (busy) return;
+    if (!planData) {
+      showStatus('Jalankan Generate Bahan, Angle & Judul terlebih dahulu.', true);
+      return;
+    }
+    if (!selectedAngle) {
+      showStatus('Pilih salah satu angle berita terlebih dahulu.', true);
+      return;
+    }
+    if (!selectedTitle) {
+      showStatus('Pilih salah satu judul berita terlebih dahulu.', true);
+      return;
+    }
+    const base = getBaseInput();
+    if (!base) {
+      showStatus('Bahan mentah tidak ditemukan. Masukkan bahan kembali.', true);
+      return;
+    }
+    setBusy(true, 'AI sedang menulis berita final. Ini menggunakan satu permintaan AI.');
+    const input = Object.assign({}, base, {
+      selectedAngle: [
+        selectedAngle.title, selectedAngle.focus, selectedAngle.reason,
+        selectedAngle.evidence, selectedAngle.direction
+      ].filter(Boolean).join('\n'),
+      selectedTitle: selectedTitle.title
+    });
+
+    google.script.run
+      .withSuccessHandler(data => {
+        setBusy(false);
+        finalData = data;
+        document.getElementById('finalTitle').value = plainText(data.title || selectedTitle.title);
+        document.getElementById('finalEditor').value = plainText(data.body || '');
+        renderVerification(data.verificationNotes || []);
+        document.getElementById('finalPanel').style.display = 'block';
+        showStatus('Berita final selesai dibuat. Silakan periksa dan sunting sebelum publikasi.');
+        document.getElementById('finalPanel').scrollIntoView({behavior:'smooth', block:'start'});
+      })
+      .withFailureHandler(err => {
+        setBusy(false);
+        showStatus('Terjadi kesalahan: ' + (err.message || err), true);
+      })
+      .generateFinal(input);
+  }
+
+  function renderVerification(notes) {
+    const root = document.getElementById('verificationBlock');
+    root.replaceChildren();
+    if (!Array.isArray(notes) || !notes.length) return;
+    const h = document.createElement('h3');
+    h.textContent = 'Catatan verifikasi editor';
+    const p = document.createElement('p');
+    p.className = 'muted';
+    p.style.whiteSpace = 'pre-wrap';
+    p.textContent = formatList(notes);
+    root.append(h,p);
+  }
+
+  function plainText(value) {
+    return String(value == null ? '' : value)
+      .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+      .replace(/<\/\s*(p|div|h[1-6]|li|blockquote)\s*>/gi, '\n')
+      .replace(/<\s*li[^>]*>/gi, '- ')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function formatList(items) {
+    if (!Array.isArray(items) || !items.length) return 'Tidak ada informasi yang dicantumkan.';
+    return items.map((x,i) => (i+1) + '. ' + plainText(typeof x === 'object' ? JSON.stringify(x) : x)).join('\n');
+  }
+
+  function getPlanSummaryText() {
+    if (!planData) return '';
+    return [
+      'RINGKASAN BAHAN\n' + plainText(planData.summary || ''),
+      'FAKTA\n' + formatList(planData.facts),
+      'KUTIPAN SUMBER\n' + formatList(planData.quotes),
+      'PERLU DIVERIFIKASI\n' + formatList(planData.missing)
+    ].join('\n\n');
+  }
+
+  async function copyText(text, successMessage) {
+    if (!text) {
+      showStatus('Belum ada teks untuk disalin.', true);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showStatus(successMessage);
+    } catch (e) {
+      showStatus('Penyalinan otomatis tidak tersedia. Pilih teks pada kolom lalu salin secara manual.', true);
+    }
+  }
+
+  function copyPlanSummary() {
+    copyText(getPlanSummaryText(), 'Ringkasan bahan berhasil disalin.');
+  }
+
+  function copyFinal() {
+    const title = document.getElementById('finalTitle').value.trim();
+    const body = document.getElementById('finalEditor').value.trim();
+    copyText((title ? title + '\n\n' : '') + body, 'Berita lengkap berhasil disalin.');
+  }
+
+  function copyBody() {
+    copyText(document.getElementById('finalEditor').value.trim(), 'Isi berita berhasil disalin.');
+  }
+</script>
+</body>
+</html>
