@@ -158,7 +158,7 @@
   let selectedTitle = null;
   let finalData = null;
   let busy = false;
-  const API_BASE = '';
+  const API_BASE = '/api';
 
   async function callBackend(path, payload) {
     const response = await fetch(API_BASE + path, {
